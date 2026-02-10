@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LicitAnalise - Gestão de Notas Fiscais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .highlight-min {
+            animation: pulse-green 2s infinite;
+            background-color: #dcfce7 !important;
+            border: 2px solid #22c55e !important;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Licit<span class="text-blue-600">Analise</span></h1>
+                <p class="text-slate-500">Gestão Inteligente de Itens para Licitações</p>
+            </div>
+            
+            <div class="flex gap-3">
+                <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Importar XML NF-e
+                    <input type="file" id="xmlInput" accept=".xml" class="hidden" multiple>
+                </label>
+                <button onclick="limparDados()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+                    Limpar
+                </button>
+            </div>
+        </header>
+
+        <!-- Search and Filters -->
+        <div class="glass-card rounded-xl p-6 mb-8 shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Pesquisar por nome do item ou código..." 
+                           class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                </div>
+                <button onclick="encontrarMenorPreco()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Buscar Menor Preço Unitário
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="glass-card rounded-xl shadow-sm overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left border-collapse" id="mainTable">
+                    <thead>
+                        <tr class="bg-slate-50 border-bottom border-slate-200">
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Código/GTIN</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Descrição do Produto</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Qtd</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Unidade</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Preço Unitário</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total Item</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100">
+                        <!-- Itens virão aqui -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="py-20 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="text-lg font-medium text-slate-600">Nenhuma nota importada</h3>
+                <p class="text-slate-400">Importe arquivos .xml para começar a análise.</p>
+            </div>
+        </div>
+
+        <!-- Footer Stats -->
+        <footer class="mt-6 flex justify-end gap-8 text-sm font-medium text-slate-500">
+            <div>Total de Itens: <span id="statCount" class="text-slate-800 font-bold">0</span></div>
+            <div>Média de Preço: <span id="statAvg" class="text-slate-800 font-bold">R$ 0,00</span></div>
+        </footer>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3">
+        <span id="notifMessage"></span>
+    </div>
+
+    <script>
+        let allProducts = [];
+
+        // Handle File Input
+        document.getElementById('xmlInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    parseXML(event.target.result);
+                };
+                reader.readAsText(file);
+            });
+        });
+
+        // Search Implementation
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = allProducts.filter(p => 
+                p.nome.toLowerCase().includes(term) || 
+                p.codigo.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        function parseXML(xmlString) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+            
+            // Localizar todos os itens (detalhes do produto)
+            const detTags = xmlDoc.getElementsByTagName("det");
+            
+            for (let i = 0; i < detTags.length; i++) {
+                const prod = detTags[i].getElementsByTagName("prod")[0];
+                
+                const item = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    codigo: prod.getElementsByTagName("cProd")[0]?.textContent || "S/C",
+                    nome: prod.getElementsByTagName("xProd")[0]?.textContent || "Desconhecido",
+                    ncm: prod.getElementsByTagName("NCM")[0]?.textContent || "",
+                    qtd: parseFloat(prod.getElementsByTagName("qCom")[0]?.textContent || 0),
+                    unidade: prod.getElementsByTagName("uCom")[0]?.textContent || "UN",
+                    vUni: parseFloat(prod.getElementsByTagName("vUnCom")[0]?.textContent || 0),
+                    vTotal: parseFloat(prod.getElementsByTagName("vProd")[0]?.textContent || 0)
+                };
+                
+                allProducts.push(item);
+            }
+            
+            renderTable(allProducts);
+            showNotification(`${detTags.length} itens importados com sucesso!`);
+        }
+
+        function renderTable(data) {
+            const body = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            body.innerHTML = '';
+            
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors group";
+                tr.setAttribute('data-id', p.id);
+                tr.setAttribute('data-price', p.vUni);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm text-slate-400 font-mono">${p.codigo}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-slate-700">${p.nome}</td>
+                    <td class="px-6 py-4 text-sm text-center text-slate-600">${p.qtd}</td>
+                    <td class="px-6 py-4 text-sm text-center">
+                        <span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold uppercase">${p.unidade}</span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-right font-bold text-slate-800">
+                        R$ ${p.vUni.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-right text-slate-500">
+                        R$ ${p.vTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+
+            updateStats(data);
+        }
+
+        function encontrarMenorPreco() {
+            if (allProducts.length === 0) {
+                showNotification("Importe uma nota primeiro!");
+                return;
+            }
+
+            // Resetar destaques
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('highlight-min'));
+
+            // Encontrar o menor valor unitário na lista atual
+            const minPrice = Math.min(...allProducts.map(p => p.vUni));
+            const itemsWithMinPrice = allProducts.filter(p => p.vUni === minPrice);
+
+            // Destacar na tabela
+            itemsWithMinPrice.forEach(item => {
+                const element = document.querySelector(`tr[data-id="${item.id}"]`);
+                if (element) {
+                    element.classList.add('highlight-min');
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            showNotification(`Menor preço unitário encontrado: R$ ${minPrice.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+        }
+
+        function updateStats(data) {
+            document.getElementById('statCount').textContent = data.length;
+            const avg = data.length > 0 ? data.reduce((acc, curr) => acc + curr.vUni, 0) / data.length : 0;
+            document.getElementById('statAvg').textContent = `R$ ${avg.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        }
+
+        function limparDados() {
+            allProducts = [];
+            document.getElementById('xmlInput').value = '';
+            document.getElementById('searchInput').value = '';
+            renderTable([]);
+            showNotification("Dados limpos.");
+        }
+
+        function showNotification(msg) {
+            const notif = document.getElementById('notification');
+            const message = document.getElementById('notifMessage');
+            message.textContent = msg;
+            notif.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                notif.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
