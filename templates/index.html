@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RodSys - Gestão de Notas Fiscais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Atualização para uma tipografia mais moderna e legível */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f0f7ff; /* Azul muito claro de fundo */
+            letter-spacing: -0.01em;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 1);
+            border: 1px solid #d0e1fd;
+            border-radius: 1.5rem; /* Bordas mais arredondadas */
+        }
+
+        .highlight-min {
+            animation: pulse-blue 2s infinite;
+            background-color: #e0f2fe !important;
+            border: 2px solid #0ea5e9 !important;
+        }
+
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #bae6fd;
+            border-radius: 10px;
+        }
+
+        /* Ajuste fino para títulos */
+        h1 {
+            letter-spacing: -0.05em;
+        }
+
+        /* Arredondamento extra para botões e inputs */
+        .rounded-custom {
+            border-radius: 1rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+            <div class="flex items-center gap-4">
+                <!-- Ícone de Martelo (Gavel) -->
+                <div class="bg-[#0c2d57] p-3 rounded-2xl shadow-lg shadow-blue-900/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m14 13-5-5 1.5-1.5a2.12 2.12 0 1 1 3 3L12 11"/>
+                        <path d="m7 16 5 5 1.5-1.5a2.12 2.12 0 1 0-3-3L9 18"/>
+                        <path d="m2 15 2-2"/>
+                        <path d="m20 9 2-2"/>
+                        <path d="m6 11 2-2"/>
+                        <path d="m15 20 2-2"/>
+                    </svg>
+                </div>
+                <div>
+                    <!-- Nome RodSys Aumentado e com Peso 800 (Extra Bold) -->
+                    <h1 class="text-5xl font-[800] text-[#0c2d57] leading-tight">Rod<span class="text-[#3b82f6]">Sys</span></h1>
+                    <div class="flex items-center gap-2">
+                        <p class="text-[#507299] font-semibold text-sm tracking-wide uppercase">Inteligência em Licitações</p>
+                        <!-- Contador Dinâmico no Header -->
+                        <span id="headerCounter" class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold hidden animate-bounce">0 ITENS</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <label class="cursor-pointer bg-[#3b82f6] hover:bg-[#2563eb] text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-200 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Importar XML NF-e
+                    <input type="file" id="xmlInput" accept=".xml" class="hidden" multiple>
+                </label>
+                <button onclick="limparDados()" class="px-5 py-2 border-2 border-[#d0e1fd] text-[#507299] rounded-2xl hover:bg-white transition-colors font-bold">
+                    Limpar
+                </button>
+            </div>
+        </header>
+
+        <!-- Search and Filters -->
+        <div class="glass-card p-6 mb-8 shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 relative">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-[#93c5fd]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Pesquisar por nome do item ou código..." 
+                           class="w-full pl-12 pr-4 py-4 border border-[#d0e1fd] rounded-2xl focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent outline-none transition-all font-medium text-[#0c2d57]">
+                </div>
+                <button onclick="encontrarMenorPreco()" class="bg-[#0c2d57] hover:bg-[#1e3a8a] text-white font-bold py-4 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Buscar Menor Preço
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="glass-card shadow-sm overflow-hidden border border-[#d0e1fd]">
+            <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left border-collapse" id="mainTable">
+                    <thead>
+                        <tr class="bg-[#f8faff] border-bottom border-[#d0e1fd]">
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest">Código/GTIN</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest">Descrição do Produto</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest text-center">Qtd</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest text-center">Unidade</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest text-right">Preço Unitário</th>
+                            <th class="px-6 py-4 text-[11px] font-bold text-[#507299] uppercase tracking-widest text-right">Total Item</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-[#f0f7ff]">
+                        <!-- Itens virão aqui -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="py-24 text-center">
+                <div class="bg-blue-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[#bfdbfe]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-[#507299] tracking-tight">Pronto para processar</h3>
+                <p class="text-[#93c5fd] font-medium mt-2">Arraste ou importe seus arquivos XML para o RodSys.</p>
+            </div>
+        </div>
+
+        <!-- Footer Stats -->
+        <footer class="mt-8 flex justify-end gap-10 text-sm font-semibold text-[#507299]">
+            <div class="flex items-center gap-2">
+                <span class="text-[#93c5fd]">VOLUME DE ITENS:</span>
+                <span id="statCount" class="text-[#0c2d57] font-extrabold text-lg">0</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[#93c5fd]">MÉDIA UNITÁRIA:</span>
+                <span id="statAvg" class="text-[#0c2d57] font-extrabold text-lg">R$ 0,00</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed bottom-8 right-8 transform translate-y-20 opacity-0 transition-all duration-300 bg-[#0c2d57] text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-50">
+        <div class="bg-blue-500 w-2 h-2 rounded-full animate-pulse"></div>
+        <span id="notifMessage" class="font-bold text-sm tracking-tight"></span>
+    </div>
+
+    <script>
+        let allProducts = [];
+
+        // Handle File Input
+        document.getElementById('xmlInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    parseXML(event.target.result);
+                };
+                reader.readAsText(file);
+            });
+        });
+
+        // Search Implementation
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = allProducts.filter(p => 
+                p.nome.toLowerCase().includes(term) || 
+                p.codigo.toLowerCase().includes(term)
+            );
+            renderTable(filtered);
+        });
+
+        function parseXML(xmlString) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+            
+            const detTags = xmlDoc.getElementsByTagName("det");
+            
+            for (let i = 0; i < detTags.length; i++) {
+                const prod = detTags[i].getElementsByTagName("prod")[0];
+                
+                const item = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    codigo: prod.getElementsByTagName("cProd")[0]?.textContent || "S/C",
+                    nome: prod.getElementsByTagName("xProd")[0]?.textContent || "Desconhecido",
+                    ncm: prod.getElementsByTagName("NCM")[0]?.textContent || "",
+                    qtd: parseFloat(prod.getElementsByTagName("qCom")[0]?.textContent || 0),
+                    unidade: prod.getElementsByTagName("uCom")[0]?.textContent || "UN",
+                    vUni: parseFloat(prod.getElementsByTagName("vUnCom")[0]?.textContent || 0),
+                    vTotal: parseFloat(prod.getElementsByTagName("vProd")[0]?.textContent || 0)
+                };
+                
+                allProducts.push(item);
+            }
+            
+            renderTable(allProducts);
+            showNotification(`${detTags.length} itens sincronizados!`);
+        }
+
+        function renderTable(data) {
+            const body = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const headerCounter = document.getElementById('headerCounter');
+            
+            body.innerHTML = '';
+            
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+                headerCounter.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                headerCounter.classList.remove('hidden');
+                headerCounter.textContent = `${data.length} ITENS`;
+            }
+
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition-colors group";
+                tr.setAttribute('data-id', p.id);
+                tr.setAttribute('data-price', p.vUni);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-5 text-sm text-[#93c5fd] font-mono">${p.codigo}</td>
+                    <td class="px-6 py-5 text-sm font-bold text-[#0c2d57]">${p.nome}</td>
+                    <td class="px-6 py-5 text-sm text-center text-[#507299] font-medium">${p.qtd}</td>
+                    <td class="px-6 py-5 text-sm text-center">
+                        <span class="bg-[#f0f7ff] text-[#3b82f6] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border border-[#d0e1fd]">${p.unidade}</span>
+                    </td>
+                    <td class="px-6 py-5 text-sm text-right font-extrabold text-[#0c2d57]">
+                        R$ ${p.vUni.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td class="px-6 py-5 text-sm text-right text-[#507299] font-medium">
+                        R$ ${p.vTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+
+            updateStats(data);
+        }
+
+        function encontrarMenorPreco() {
+            if (allProducts.length === 0) {
+                showNotification("Importe uma nota primeiro!");
+                return;
+            }
+
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('highlight-min'));
+
+            const minPrice = Math.min(...allProducts.map(p => p.vUni));
+            const itemsWithMinPrice = allProducts.filter(p => p.vUni === minPrice);
+
+            itemsWithMinPrice.forEach(item => {
+                const element = document.querySelector(`tr[data-id="${item.id}"]`);
+                if (element) {
+                    element.classList.add('highlight-min');
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            showNotification(`Melhor preço encontrado: R$ ${minPrice.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+        }
+
+        function updateStats(data) {
+            document.getElementById('statCount').textContent = data.length;
+            const avg = data.length > 0 ? data.reduce((acc, curr) => acc + curr.vUni, 0) / data.length : 0;
+            document.getElementById('statAvg').textContent = `R$ ${avg.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        }
+
+        function limparDados() {
+            allProducts = [];
+            document.getElementById('xmlInput').value = '';
+            document.getElementById('searchInput').value = '';
+            renderTable([]);
+            showNotification("Sistema resetado com sucesso.");
+        }
+
+        function showNotification(msg) {
+            const notif = document.getElementById('notification');
+            const message = document.getElementById('notifMessage');
+            message.textContent = msg;
+            notif.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                notif.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
